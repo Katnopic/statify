@@ -50,14 +50,14 @@ app.use(logger('dev'));
 app.use(cookieParser());
 
 app.get('/', function(req,res){
-  console.log(res.cookies["code"]);
+  //console.log(res.cookies[code]);
   res.send("Homepage");
 })
 
 app.get('/top/:type',function(req,res){
 
   // get auth code
-  var code = req.cookies["code"];
+  //var code = req.cookies[code];
 
   // Generate authentication 
   var authOptions = {
