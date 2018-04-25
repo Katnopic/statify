@@ -1,0 +1,23 @@
+{
+  "name": "statify",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Katnopic/statify/"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.3",
+    "logger": "0.0.1",
+    "morgan": "^1.9.0",
+    "querystring": "^0.2.0",
+    "request": "^2.85.0"
+  }
+}
