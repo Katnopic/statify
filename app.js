@@ -49,7 +49,32 @@ app.use(logger('dev'));
 
 app.use(cookieParser());
 
+app.get('/', function(req,res){
+  console.log(res.cookies["code"]);
+  res.send("Homepage");
+})
+
 app.get('/top/:type',function(req,res){
+
+  // get auth code
+  var code = req.cookies["code"];
+
+  // Generate authentication 
+  var authOptions = {
+    url: 'https://accounts.spotify.com/api/token',
+    form: {
+      code: code,
+      redirect_uri: redirect_uri,
+      grant_type: 'authorization_code'
+    },
+    headers: {
+      'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+    },
+    json: true
+  };
+
+  console.log(code);
+  
     if(req.params.type == "toptracks")
     {
         console.log("this is : " + req.params.type);
@@ -89,8 +114,6 @@ app.get('/callback', function(req, res) {
     var code = req.query.code || null;
     var state = req.query.state || null;
     var storedState = req.cookies ? req.cookies[stateKey] : null;
-    console.log(state);
-    console.log(storedState);
 
     if (state === null || state !== storedState) {
       res.redirect('/#' +
@@ -112,8 +135,11 @@ app.get('/callback', function(req, res) {
         json: true
       };
 
-      console.log(authOptions);
-      res.send(authOptions);
+      // save auth options to cookie
+      res.cookie("authcode", code);
+
+      res.redirect("/");
+
       /*
       request.post(authOptions,function(error,response,body){
         if(!error && response.statusCode == 200){
