@@ -50,7 +50,7 @@ app.use(logger('dev'));
 app.use(cookieParser());
 
 app.get('/', function(req,res){
-  //console.log(res.cookies[code]);
+  console.log(req.cookies['authcode']);
   res.send("Homepage");
 })
 
@@ -122,6 +122,8 @@ app.get('/callback', function(req, res) {
         }));
     } else {
       res.clearCookie(stateKey);
+      
+      /*
       var authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         form: {
@@ -134,7 +136,7 @@ app.get('/callback', function(req, res) {
         },
         json: true
       };
-
+*/
       // save auth options to cookie
       res.cookie("authcode", code);
 
