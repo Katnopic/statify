@@ -3,7 +3,7 @@
 // =========
 
 var express = require('express');
-//var request = require('request'); // "Request" library
+var request = require('request'); // "Request" library
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
@@ -37,61 +37,60 @@ var generateRandomString = function(length) {
     return text;
   };
 
-// init express
+// init express add cookie parser and requests log
 var app = express();
-
-// set requests logging
-app.use(logger('dev'));
+app.use(cookieParser());
+//app.use(logger('dev'));
 
 // set static route
 //app.use(express.static("/", __dirname + '/public'))
-//.use(cookieParser());
-
-app.use(cookieParser());
 
 app.get('/', function(req,res){
-  console.log(req.cookies['authcode']);
+  console.log('on root /')
   res.send("Homepage");
 })
 
 app.get('/top/:type',function(req,res){
 
-  // get auth code
-  //var code = req.cookies[code];
+  console.log(req.cookies);
 
-  // Generate authentication 
-  var authOptions = {
-    url: 'https://accounts.spotify.com/api/token',
-    form: {
-      code: code,
-      redirect_uri: redirect_uri,
-      grant_type: 'authorization_code'
-    },
-    headers: {
-      'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
-    },
-    json: true
-  };
-
-  console.log(code);
+  // get access token
+  var access_token = req.cookies['access_token'],
+      api_url = "https://api.spotify.com/v1/me/top/" + req.params.type; 
   
-    if(req.params.type == "toptracks")
+  // set auth form
+  var options = {
+    url : api_url,
+    headers: { 'Authorization': 'Bearer ' + access_token },
+    json: true
+  }
+
+    if(req.params.type == "tracks")
     {
         console.log("this is : " + req.params.type);
-        console.log(req.query.length);
-        res.send("toptracks");
+        request.get(options, function(error, response, body) {
+          // go over songs
+          arrsongs = [];
+          var songs = body.items;
+          songs.forEach(function(song){
+            arrsongs.push(song.name);
+          })
+
+          res.send(arrsongs);
+
+        });
+
     }
-    if(req.params.type == "topartists")
+    if(req.params.type == "artists")
     {
         console.log("this is : " + req.params.type);
-        console.log(req.query.length);
         res.send("topartists");
     }
 })
 
 // authorize user in spotify and redirect
 app.get('/login', function(req, res) {
-    
+    console.log('on login')
     var state = generateRandomString(16);
     res.cookie(stateKey, state);
 
@@ -108,7 +107,7 @@ app.get('/login', function(req, res) {
 });
 
 app.get('/callback', function(req, res) {
-
+    console.log("hi im callback");
     // your application requests refresh and access tokens
     // after checking the state parameter
     var code = req.query.code || null;
@@ -116,14 +115,14 @@ app.get('/callback', function(req, res) {
     var storedState = req.cookies ? req.cookies[stateKey] : null;
 
     if (state === null || state !== storedState) {
+      console.log('mismatch');
       res.redirect('/#' +
         querystring.stringify({
           error: 'state_mismatch'
         }));
     } else {
       res.clearCookie(stateKey);
-      
-      /*
+          
       var authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         form: {
@@ -136,19 +135,28 @@ app.get('/callback', function(req, res) {
         },
         json: true
       };
-*/
+
       // save auth options to cookie
-      res.cookie("authcode", code);
+//      res.cookie("authcode", code);
 
-      res.redirect("/");
+  //    res.redirect("/");
 
-      /*
       request.post(authOptions,function(error,response,body){
+        console.log("inside post");
         if(!error && response.statusCode == 200){
+          console.log("im in");
           var access_token = body.access_token,
-              refresh_token = body.refresh_token,
-              api_url = 'https://api.spotify.com/v1/me/top/tracks?limit=10';
-  
+              refresh_token = body.refresh_token;
+          
+          res.cookie("access_token", access_token);
+          res.cookie("refresh_token",refresh_token);
+          res.redirect('/');
+          
+            }
+          });
+
+      //res.redirect('/');
+/*
           var options = {
             url : api_url,
             headers: { 'Authorization': 'Bearer ' + access_token },
