@@ -21,12 +21,11 @@ var stateKey = 'spotify_auth_state';
 // CODE
 // =========
 
-
 /**
  * Generates a random string containing numbers and letters
  * @param  {number} length The length of the string
  * @return {string} The generated string
- */
+*/
 var generateRandomString = function(length) {
     var text = '';
     var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -52,33 +51,31 @@ app.get('/', function(req,res){
 
 app.get('/top/:type',function(req,res){
 
-  console.log(req.cookies);
-
-  // get access token
+  // get access token and set relevant api url
   var access_token = req.cookies['access_token'],
       api_url = "https://api.spotify.com/v1/me/top/" + req.params.type; 
   
-  // set auth form
+  // set authentication form
   var options = {
     url : api_url,
     headers: { 'Authorization': 'Bearer ' + access_token },
     json: true
   }
 
-    if(req.params.type == "tracks")
-    {
-        console.log("this is : " + req.params.type);
-        request.get(options, function(error, response, body) {
-          // go over songs
-          arrsongs = [];
-          var songs = body.items;
-          songs.forEach(function(song){
-            arrsongs.push(song.name);
-          })
+  if(req.params.type == "tracks")
+  {
+      console.log("this is : " + req.params.type);
+      request.get(options, function(error, response, body) {
+        // go over songs
+        arrsongs = [];
+        var songs = body.items;
+        songs.forEach(function(song){
+          arrsongs.push(song.name);
+        })
 
-          res.send(arrsongs);
+        res.send(arrsongs);
 
-        });
+  });
 
     }
     if(req.params.type == "artists")
@@ -94,7 +91,7 @@ app.get('/login', function(req, res) {
     var state = generateRandomString(16);
     res.cookie(stateKey, state);
 
-    // your application requests authorization
+    // request authorization ; redirects to /callback
     var scope = 'user-read-private user-read-email user-top-read';
     res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -106,10 +103,9 @@ app.get('/login', function(req, res) {
     }));
 });
 
+// after user accepted login
 app.get('/callback', function(req, res) {
     console.log("on callback");
-    // your application requests refresh and access tokens
-    // after checking the state parameter
     var code = req.query.code || null;
     var state = req.query.state || null;
     var storedState = req.cookies ? req.cookies[stateKey] : null;
@@ -136,11 +132,6 @@ app.get('/callback', function(req, res) {
         json: true
       };
 
-      // save auth options to cookie
-//      res.cookie("authcode", code);
-
-  //    res.redirect("/");
-
       request.post(authOptions,function(error,response,body){
         console.log("on post");
         if(!error && response.statusCode == 200){
@@ -148,6 +139,7 @@ app.get('/callback', function(req, res) {
           var access_token = body.access_token,
               refresh_token = body.refresh_token;
           
+          // save request and access tokens as cookies
           res.cookie("access_token", access_token);
           res.cookie("refresh_token",refresh_token);
           res.redirect('/');
