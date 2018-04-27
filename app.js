@@ -106,8 +106,6 @@ app.get('/login', function(req, res) {
     }));
 });
 
-//tt
-
 app.get('/callback', function(req, res) {
     console.log("hi im callback");
     // your application requests refresh and access tokens
