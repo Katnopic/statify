@@ -46,7 +46,7 @@ app.use(cookieParser());
 //app.use(express.static("/", __dirname + '/public'))
 
 app.get('/', function(req,res){
-  console.log('on root /')
+  console.log('on root')
   res.send("Homepage");
 })
 
@@ -107,7 +107,7 @@ app.get('/login', function(req, res) {
 });
 
 app.get('/callback', function(req, res) {
-    console.log("hi im callback");
+    console.log("on callback");
     // your application requests refresh and access tokens
     // after checking the state parameter
     var code = req.query.code || null;
@@ -142,9 +142,9 @@ app.get('/callback', function(req, res) {
   //    res.redirect("/");
 
       request.post(authOptions,function(error,response,body){
-        console.log("inside post");
+        console.log("on post");
         if(!error && response.statusCode == 200){
-          console.log("im in");
+          console.log("setting access token");
           var access_token = body.access_token,
               refresh_token = body.refresh_token;
           
