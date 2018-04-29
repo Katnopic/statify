@@ -36,6 +36,29 @@ var generateRandomString = function(length) {
     return text;
   };
 
+var refreshAccessToken = function(refresh_token){
+    // set form
+    var authOptions = {
+      url: 'https://accounts.spotify.com/api/token',
+      headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
+      form: {
+        grant_type: 'refresh_token',
+        refresh_token: refresh_token
+      },
+      json: true
+    };
+  
+    request.post(authOptions, function(error, response, body) {
+      if (!error && response.statusCode === 200) {
+        return body.access_token;
+      }
+      else{
+        return "error getting access token";
+      }
+      
+    });
+}
+
 // init express add cookie parser and requests log
 var app = express();
 app.use(cookieParser());
@@ -51,9 +74,17 @@ app.get('/', function(req,res){
 
 app.get('/top/:type',function(req,res){
 
+  // set default query params 
+  var limit = 10,
+      time_range = "medium_term";
+
+  // read query params and change default
+  req.query.limit ? limit = req.query.limit : null;
+  req.query.time_range ? time_range = req.query.time_range : null;
+
   // get access token and set relevant api url
   var access_token = req.cookies['access_token'],
-      api_url = "https://api.spotify.com/v1/me/top/" + req.params.type; 
+      api_url = "https://api.spotify.com/v1/me/top/" + req.params.type + "?limit=" + limit + "&time_range=" + time_range; 
   
   // set authentication form
   var options = {
@@ -62,26 +93,43 @@ app.get('/top/:type',function(req,res){
     json: true
   }
 
+  // if user requested top tracks
   if(req.params.type == "tracks")
   {
-      console.log("this is : " + req.params.type);
       request.get(options, function(error, response, body) {
         // go over songs
-        arrsongs = [];
-        var songs = body.items;
-        songs.forEach(function(song){
-          arrsongs.push(song.name);
-        })
+        if(!error && response.statusCode == 200){
+          arrsongs = [];
+          var songs = body.items;
+          songs.forEach(function(song){
+            arrsongs.push(song.name);
+          })
 
-        res.send(arrsongs);
-
-  });
+          res.send(arrsongs);
+        }
+        else
+        {
+          console.log(error + ":" + response.statusCode);
+          res.status(404).send(body);
+        }
+      });
 
     }
-    if(req.params.type == "artists")
-    {
-        console.log("this is : " + req.params.type);
-        res.send("topartists");
+  if(req.params.type == "artists")
+  {
+      if(!error && response.statusCode == 200){
+        arrartists = [];
+        var artists = body.items;
+        artists.forEach(function(artist){
+          arrartists.push(artist.name);
+        })
+
+        res.send(arrartists);
+      }
+      else
+      {
+        res.status(404).send(body);     
+      }
     }
 })
 
