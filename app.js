@@ -1,3 +1,5 @@
+import { ENGINE_METHOD_NONE } from 'constants';
+
 // =========
 // SETUP
 // =========
@@ -12,6 +14,10 @@ var logger = require('morgan');
 // VARIABLES
 // =========
 
+/* ==== TODO
+1) merge artists and tracks query to one function?
+2) refresh token incase of invalid token
+*/
 var client_id = 'a338318326fa4c15b672462457f49a9c'; // Your client id
 var client_secret = '8ae0cf4870bf487ab8e96c03a0f53d14'; // Your secret
 var redirect_uri = 'http://localhost:3000/callback'; // Your redirect uri after the login
