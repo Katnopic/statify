@@ -19,7 +19,6 @@ var fs = require('fs');
 */
 var client_id = 'a338318326fa4c15b672462457f49a9c'; // Your client id
 var client_secret = fs.readFileSync("client_secret.txt", "utf8");
-console.log(client_secret);
 var redirect_uri = 'http://localhost:3000/callback'; // Your redirect uri after the login
 var stateKey = 'spotify_auth_state';
 
