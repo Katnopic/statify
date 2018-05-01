@@ -1,3 +1,6 @@
+# sensitive files
+client_secret.txt
+
 # Logs
 logs
 *.log

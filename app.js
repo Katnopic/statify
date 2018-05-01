@@ -1,5 +1,3 @@
-import { ENGINE_METHOD_NONE } from 'constants';
-
 // =========
 // SETUP
 // =========
@@ -9,6 +7,7 @@ var request = require('request'); // "Request" library
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var fs = require('fs');
 
 // =========
 // VARIABLES
@@ -19,7 +18,8 @@ var logger = require('morgan');
 2) refresh token incase of invalid token
 */
 var client_id = 'a338318326fa4c15b672462457f49a9c'; // Your client id
-var client_secret = '8ae0cf4870bf487ab8e96c03a0f53d14'; // Your secret
+var client_secret = fs.readFileSync("client_secret.txt", "utf8");
+console.log(client_secret);
 var redirect_uri = 'http://localhost:3000/callback'; // Your redirect uri after the login
 var stateKey = 'spotify_auth_state';
 
