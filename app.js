@@ -1,3 +1,8 @@
+/* TODO:
+() refresh token incase of invalid token
+() move big and repitable code segments to seperate modules
+*/
+
 // =========
 // SETUP
 // =========
@@ -7,16 +12,15 @@ var request = require('request'); // "Request" library
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var fs = require('fs');
+var fs = require('fs'); 
+var content_functions = require('./content.js')
+var helpers = require('./helpers.js')
+var authentication = require('./authentication.js')
 
 // =========
 // VARIABLES
 // =========
 
-/* ==== TODO
-1) merge artists and tracks query to one function?
-2) refresh token incase of invalid token
-*/
 var client_id = 'a338318326fa4c15b672462457f49a9c'; // Your client id
 var client_secret = fs.readFileSync("client_secret.txt", "utf8");
 var redirect_uri = 'http://localhost:3000/callback'; // Your redirect uri after the login
@@ -27,23 +31,13 @@ var stateKey = 'spotify_auth_state';
 // =========
 
 /**
- * Generates a random string containing numbers and letters
- * @param  {number} length The length of the string
- * @return {string} The generated string
+ * Retrieves a new access token for the user  
+ * @param  {string} refresh_token refresh token to send to spotify API to gain new access token
+ * @return {string} a new access token
 */
-var generateRandomString = function(length) {
-    var text = '';
-    var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  
-    for (var i = 0; i < length; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-  };
-
 var refreshAccessToken = function(refresh_token){
     // set form
-    var authOptions = {
+    var form = {
       url: 'https://accounts.spotify.com/api/token',
       headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
       form: {
@@ -53,7 +47,7 @@ var refreshAccessToken = function(refresh_token){
       json: true
     };
   
-    request.post(authOptions, function(error, response, body) {
+    request.post(form, function(error, response, body) {
       if (!error && response.statusCode === 200) {
         return body.access_token;
       }
@@ -69,6 +63,7 @@ var app = express();
 app.use(cookieParser());
 //app.use(logger('dev'));
 
+
 // set static route
 //app.use(express.static("/", __dirname + '/public'))
 
@@ -79,13 +74,12 @@ app.get('/', function(req,res){
 
 app.get('/top/:type',function(req,res){
 
-  // set default query params 
-  var limit = 10,
-      time_range = "medium_term";
+  // Define variables 
+  var limit, time_range;
 
-  // read query params and change default
-  req.query.limit ? limit = req.query.limit : null;
-  req.query.time_range ? time_range = req.query.time_range : null;
+  // read query params and set to default if necessary
+  req.query.limit ? limit = req.query.limit : limit = 10;
+  req.query.time_range ? time_range = req.query.time_range : time_range = "medium_term";
 
   // get access token and set relevant api url
   var access_token = req.cookies['access_token'],
@@ -98,50 +92,27 @@ app.get('/top/:type',function(req,res){
     json: true
   }
 
-  // if user requested top tracks
-  if(req.params.type == "tracks")
-  {
-      request.get(options, function(error, response, body) {
-        // go over songs
-        if(!error && response.statusCode == 200){
-          arrsongs = [];
-          var songs = body.items;
-          songs.forEach(function(song){
-            arrsongs.push(song.name);
-          })
-
-          res.send(arrsongs);
-        }
-        else
-        {
-          console.log(error + ":" + response.statusCode);
-          res.status(404).send(body);
-        }
-      });
-
-    }
-  if(req.params.type == "artists")
-  {
+    // GET top tracks/artists
+    request.get(options, function(error, response, body) {
       if(!error && response.statusCode == 200){
-        arrartists = [];
-        var artists = body.items;
-        artists.forEach(function(artist){
-          arrartists.push(artist.name);
-        })
+        // parse only relevant properties from json
+        arr_content = content_functions.retrieve_parsed_content(body.items)
+        res.send(arr_content);
+      }
+      else if (statusCode == 401){
 
-        res.send(arrartists);
       }
-      else
       {
-        res.status(404).send(body);     
+        console.log(body.error.message + ":" + response.statusCode);
+        res.status(404).send(body);
       }
-    }
+      });
 })
 
 // authorize user in spotify and redirect
 app.get('/login', function(req, res) {
     console.log('on login')
-    var state = generateRandomString(16);
+    var state = helpers.generateRandomString(16);
     res.cookie(stateKey, state);
 
     // request authorization ; redirects to /callback
@@ -171,91 +142,17 @@ app.get('/callback', function(req, res) {
         }));
     } else {
       res.clearCookie(stateKey);
-          
-      var authOptions = {
-        url: 'https://accounts.spotify.com/api/token',
-        form: {
-          code: code,
-          redirect_uri: redirect_uri,
-          grant_type: 'authorization_code'
-        },
-        headers: {
-          'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
-        },
-        json: true
-      };
 
-      request.post(authOptions,function(error,response,body){
-        console.log("on post");
-        if(!error && response.statusCode == 200){
-          console.log("setting access token");
-          var access_token = body.access_token,
-              refresh_token = body.refresh_token;
-          
-          // save request and access tokens as cookies
-          res.cookie("access_token", access_token);
-          res.cookie("refresh_token",refresh_token);
-          res.redirect('/');
-          
-            }
-          });
+      // initiate login with code recieved 
+      tokens = authentication.initial_auth(code,redirect_uri,client_id,client_secret,function(access_token,refresh_token){
 
-      //res.redirect('/');
-/*
-          var options = {
-            url : api_url,
-            headers: { 'Authorization': 'Bearer ' + access_token },
-            json: true
-          }
-  
-          request.get(options, function(error, response, body) {
-            // go over songs
-            var songs = body.items;
-            songs.forEach(function(song){
-              console.log(song.name)
-            })
-  
-          });
-  
-        }
+        // save access and refresh tokens as cookies
+        res.cookie("access_token", access_token);
+        res.cookie("refresh_token",refresh_token);
+
+        // redirect to home page
+        res.redirect('/');
       })
-
-*/
-
-
-/*
-      request.post(authOptions, function(error, response, body) {
-        if (!error && response.statusCode === 200) {
-  
-          var access_token = body.access_token,
-              refresh_token = body.refresh_token,
-              api_url = 'https://api.spotify.com/v1/me';
-  
-          var options = {
-            url: 'https://api.spotify.com/v1/me',
-            headers: { 'Authorization': 'Bearer ' + access_token },
-            json: true
-          };
-  
-          // use the access token to access the Spotify Web API
-          request.get(options, function(error, response, body) {
-            //console.log(body);
-          });
-  
-          // we can also pass the token to the browser to make requests from there
-          res.redirect('/#' +
-            querystring.stringify({
-              access_token: access_token,
-              refresh_token: refresh_token
-            }));
-        } else {
-          res.redirect('/#' +
-            querystring.stringify({
-              error: 'invalid_token'
-            }));
-        }
-      });
-      */
     }
 
   });
